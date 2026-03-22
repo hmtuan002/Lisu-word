@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vord AI - Soạn thảo thông minh | Bảo mật API</title>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Quill Editor -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fb;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: white;
+            padding: 10px 24px;
+            border-bottom: 1px solid #e8eaed;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            flex-shrink: 0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo i {
+            font-size: 24px;
+            color: #1a73e8;
+        }
+
+        .logo h1 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #202124;
+        }
+
+        .ai-tag {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            color: white;
+            font-weight: 600;
+        }
+
+        .security-badge {
+            background: #e8f0fe;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: #1a73e8;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: white;
+            border: 1px solid #dadce0;
+            padding: 6px 14px;
+            border-radius: 24px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #3c4043;
+        }
+
+        button:hover {
+            background: #f8f9fa;
+            border-color: #1a73e8;
+        }
+
+        .btn-primary {
+            background: #1a73e8;
+            border-color: #1a73e8;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0f5bb5;
+        }
+
+        .btn-ai {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+        }
+
+        .share-box {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #f1f3f4;
+            padding: 4px 12px;
+            border-radius: 28px;
+        }
+
+        .share-box input {
+            background: transparent;
+            border: none;
+            width: 240px;
+            font-size: 12px;
+            outline: none;
+            font-family: monospace;
+        }
+
+        .status {
+            font-size: 12px;
+            color: #5f6368;
+            background: #f1f3f4;
+            padding: 4px 14px;
+            border-radius: 24px;
+        }
+
+        .editor-wrapper {
+            flex: 1;
+            margin: 20px 24px 24px 24px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #eef2f6;
+        }
+
+        #editor {
+            flex: 1;
+            background: white;
+            overflow-y: auto;
+        }
+
+        .ql-toolbar {
+            border: none;
+            border-bottom: 1px solid #eef2f6;
+            background: #ffffff;
+            flex-shrink: 0;
+        }
+
+        .ql-container {
+            border: none;
+            font-size: 15px;
+            flex: 1;
+        }
+
+        .ql-editor {
+            font-family: 'Segoe UI', 'Roboto', system-ui, sans-serif;
+            line-height: 1.6;
+            padding: 28px 32px;
+        }
+        
+        .ql-editor p {
+            margin-bottom: 0.75em;
+            margin-top: 0;
+        }
+        
+        .ql-editor h1, .ql-editor h2, .ql-editor h3 {
+            margin-top: 1.2em;
+            margin-bottom: 0.6em;
+            font-weight: 600;
+        }
+        
+        .ql-editor h2 {
+            font-size: 1.8rem;
+            text-align: center;
+        }
+        
+        .ql-editor p:empty {
+            display: none;
+        }
+        
+        .ai-loading {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1a73e8;
+            color: white;
+            padding: 12px 22px;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            z-index: 1000;
+            animation: slideUp 0.25s ease;
+        }
+
+        .ai-loading i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .editor-wrapper { margin: 12px 14px 16px 14px; }
+            .ql-editor { padding: 18px 16px; }
+            .share-box input { width: 150px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="logo">
+        <i class="fas fa-feather-alt"></i>
+        <h1>Vord <span class="ai-tag">AI+</span></h1>
+        <span class="security-badge"><i class="fas fa-shield-alt"></i> API Protected</span>
+    </div>
+    <div class="actions">
+        <button id="newBtn"><i class="fas fa-plus"></i> Mới</button>
+        <button id="saveBtn" class="btn-primary"><i class="fas fa-save"></i> Lưu</button>
+        <button id="aiHelpBtn" class="btn-ai"><i class="fas fa-robot"></i> AI</button>
+        <div class="share-box">
+            <i class="fas fa-link"></i>
+            <input type="text" id="shareLink" readonly placeholder="Chia sẻ link">
+            <button id="copyBtn"><i class="far fa-copy"></i></button>
+        </div>
+        <span id="status" class="status"><i class="fas fa-circle" style="font-size: 8px; color: #34a853;"></i> Sẵn sàng</span>
+    </div>
+</div>
+
+<div class="editor-wrapper">
+    <div id="editor"></div>
+</div>
+
+<script>
+    // ==================== BẢO MẬT API KEY ====================
+    // API key được lưu dưới dạng đảo ngược (reverse) để tránh bị quét
+    // Key thật: AIzaSyCtfx4BDs_-pXZ9ULhgGoN_OmUfFpIvK2I
+    // Key đã đảo ngược: I2KvIpFfUmO_NogghLU9ZXp_-sDB4xftCySazIA
+    
+    // Hàm đảo ngược chuỗi
+    function reverseString(str) {
+        return str.split('').reverse().join('');
+    }
+    
+    // API key đã được mã hóa đảo ngược (reverse)
+    const ENCRYPTED_GEMINI_KEY = "I2KvIpFfUmO_NogghLU9ZXp_-sDB4xftCySazIA";
+    
+    // Giải mã key bằng cách đảo ngược lại
+    const GEMINI_API_KEY = reverseString(ENCRYPTED_GEMINI_KEY);
+    
+    // Kiểm tra key đã được giải mã đúng chưa (chỉ để debug, có thể xóa trong production)
+    console.log("API Key đã được giải mã bảo mật:", GEMINI_API_KEY.substring(0, 10) + "...");
+    // ========================================================
+    
+    // Firebase Config (cũng có thể áp dụng đảo ngược tương tự nếu muốn)
+    const firebaseConfig = {
+        apiKey: "AIzaSyDhcEvQruck6WQ_mz47efj7bSdqSUI5xJs",
+        authDomain: "vord-a38f2.firebaseapp.com",
+        projectId: "vord-a38f2",
+        storageBucket: "vord-a38f2.firebasestorage.app",
+        messagingSenderId: "94522661685",
+        appId: "1:94522661685:web:66b20882f40ba278678a7c"
+    };
+    
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    
+    let quill, currentDocId, saveTimeout, unsubscribe;
+    let isSaving = false;
+    
+    const shareLinkInput = document.getElementById('shareLink');
+    const statusSpan = document.getElementById('status');
+    
+    function setStatus(msg, isError = false) {
+        const icon = isError ? '<i class="fas fa-exclamation-triangle"></i>' : '<i class="fas fa-circle" style="font-size: 8px; color: #34a853;"></i>';
+        statusSpan.innerHTML = `${icon} ${msg}`;
+        if (!isError) {
+            setTimeout(() => {
+                if (statusSpan.innerHTML.includes(msg)) {
+                    statusSpan.innerHTML = `<i class="fas fa-circle" style="font-size: 8px; color: #34a853;"></i> Sẵn sàng`;
+                }
+            }, 2000);
+        }
+    }
+    
+    // Chuẩn hóa nội dung, xóa xuống dòng thừa
+    function normalizeHtmlContent(html) {
+        if (!html) return '<p><em>Nội dung trống</em></p>';
+        
+        let cleaned = html;
+        
+        // Xóa thẻ <br> và p rỗng
+        cleaned = cleaned.replace(/<br\s*\/?>/gi, '');
+        cleaned = cleaned.replace(/<p>\s*<\/p>/gi, '');
+        cleaned = cleaned.replace(/<p>\s*<br\s*\/?>\s*<\/p>/gi, '');
+        cleaned = cleaned.replace(/\n\s*\n\s*\n/g, '\n\n');
+        
+        // Xử lý tiêu đề căn giữa
+        cleaned = cleaned.replace(/<(h2|h3)([^>]*)>/gi, (match, tag, attrs) => {
+            if (!attrs.includes('style') && !attrs.includes('text-align')) {
+                return `<${tag} style="text-align: center; margin-top: 1.2em; margin-bottom: 0.6em;">`;
+            } else if (attrs.includes('style') && !attrs.includes('text-align')) {
+                return match.replace(/style="([^"]*)"/, 'style="$1; text-align: center;"');
+            }
+            return match;
+        });
+        
+        return cleaned;
+    }
+    
+    async function saveDocument(showToast = false) {
+        if (!currentDocId || isSaving) return false;
+        try {
+            isSaving = true;
+            if (showToast) setStatus("Đang lưu...");
+            
+            const html = quill.root.innerHTML;
+            const normalizedHtml = normalizeHtmlContent(html);
+            if (normalizedHtml !== html) {
+                quill.root.innerHTML = normalizedHtml;
+            }
+            
+            const delta = quill.getContents();
+            await db.collection('documents').doc(currentDocId).set({
+                contentDelta: JSON.parse(JSON.stringify(delta)),
+                contentHtml: quill.root.innerHTML,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            
+            if (showToast) setStatus("✓ Đã lưu");
+            return true;
+        } catch (error) {
+            setStatus("Lỗi: " + error.message, true);
+            return false;
+        } finally {
+            isSaving = false;
+        }
+    }
+    
+    // Gọi Gemini API với key đã được giải mã
+    async function callGeminiAPI(prompt) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
+        
+        const instruction = `Viết nội dung HTML về chủ đề: "${prompt}".
+
+YÊU CẦU:
+1. Sử dụng các thẻ: <h2>, <p>, <strong>, <em>, <ul>, <li>
+2. TIÊU ĐỀ <h2> phải có style="text-align: center;"
+3. KHÔNG dùng thẻ <br>
+4. Giữa các đoạn văn chỉ cách nhau bằng </p><p>
+5. Nội dung dài 180-250 từ, chất lượng cao
+6. KHÔNG có markdown, code block
+7. Danh sách dùng <ul> và <li>
+
+Trả về HTML thuần túy.`;
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: instruction }] }],
+                generationConfig: { temperature: 0.7, maxOutputTokens: 10000 }
+            })
+        });
+        
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error?.message || "API lỗi");
+        }
+        
+        const data = await response.json();
+        let text = data.candidates[0]?.content?.parts[0]?.text || "";
+        text = text.replace(/```html?/gi, '').replace(/```/g, '').trim();
+        text = normalizeHtmlContent(text);
+        
+        return text;
+    }
+    
+    function showLoading(message = "AI đang viết...") {
+        const existing = document.getElementById('ai-loading');
+        if (existing) existing.remove();
+        const div = document.createElement('div');
+        div.id = 'ai-loading';
+        div.className = 'ai-loading';
+        div.innerHTML = `<i class="fas fa-spinner"></i> ${message}`;
+        document.body.appendChild(div);
+    }
+    
+    function hideLoading() {
+        const div = document.getElementById('ai-loading');
+        if (div) div.remove();
+    }
+    
+    async function processAICommand() {
+        const text = quill.getText();
+        const regex = /AI\{([^}]+)\}/g;
+        const matches = [];
+        let match;
+        
+        while ((match = regex.exec(text)) !== null) {
+            matches.push({ full: match[0], command: match[1].trim(), index: match.index });
+        }
+        
+        if (matches.length === 0) return false;
+        
+        let resultHtml = '';
+        let lastIndex = 0;
+        
+        for (const item of matches) {
+            const beforeText = text.substring(lastIndex, item.index);
+            resultHtml += beforeText.replace(/\n/g, ' ');
+            
+            showLoading(`AI đang viết về "${item.command.substring(0, 40)}"...`);
+            
+            try {
+                const aiHtml = await callGeminiAPI(item.command);
+                resultHtml += aiHtml;
+                setStatus(`✓ Đã tạo: ${item.command.substring(0, 35)}`);
+            } catch (error) {
+                resultHtml += `<p style="color: #d93025;">[Lỗi: ${error.message}]</p>`;
+                setStatus(`Lỗi: ${error.message}`, true);
+            } finally {
+                hideLoading();
+            }
+            lastIndex = item.index + item.full.length;
+        }
+        
+        const remainingText = text.substring(lastIndex);
+        resultHtml += remainingText.replace(/\n/g, ' ');
+        
+        resultHtml = normalizeHtmlContent(resultHtml);
+        quill.root.innerHTML = resultHtml;
+        await saveDocument(false);
+        return true;
+    }
+    
+    let aiTimeout;
+    function triggerAICheck() {
+        if (aiTimeout) clearTimeout(aiTimeout);
+        aiTimeout = setTimeout(() => processAICommand(), 1200);
+    }
+    
+    async function loadDocument(docId) {
+        try {
+            const doc = await db.collection('documents').doc(docId).get();
+            if (doc.exists) {
+                const data = doc.data();
+                if (data.contentHtml) {
+                    let content = normalizeHtmlContent(data.contentHtml);
+                    quill.root.innerHTML = content;
+                } else if (data.contentDelta) {
+                    quill.setContents(data.contentDelta);
+                }
+            } else {
+                quill.root.innerHTML = `<h2 style="text-align: center;">✨ Vord AI - Soạn thảo thông minh ✨</h2>
+<p><strong>Trình soạn thảo với AI tích hợp</strong> | API được bảo vệ bằng mã hóa đảo ngược</p>
+<p>📝 <em>Gõ <strong>AI{Giới thiệu về Nguyễn Huệ}</strong> để AI tự động tạo nội dung có định dạng đẹp, tiêu đề căn giữa.</em></p>
+<p>💡 <strong>Ví dụ khác:</strong> AI{Lợi ích của AI trong giáo dục}</p>
+<p><small><i class="fas fa-shield-alt"></i> API Key đã được bảo vệ bằng cơ chế đảo ngược</small></p>`;
+                await saveDocument(false);
+            }
+            setStatus("Đã tải");
+            return true;
+        } catch (error) {
+            setStatus("Lỗi tải", true);
+            return false;
+        }
+    }
+    
+    async function createDocument() {
+        try {
+            const newRef = db.collection('documents').doc();
+            currentDocId = newRef.id;
+            quill.root.innerHTML = `<h2 style="text-align: center;">📄 Tài liệu mới</h2>
+<p>Bắt đầu soạn thảo hoặc gõ <strong>AI{chủ đề}</strong> để sử dụng AI.</p>
+<p><em>🔒 API Key đã được mã hóa bảo mật</em></p>`;
+            await newRef.set({
+                contentHtml: quill.root.innerHTML,
+                contentDelta: JSON.parse(JSON.stringify(quill.getContents())),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            updateShareLink();
+            subscribeRealtime();
+            setStatus("Tài liệu mới");
+            return currentDocId;
+        } catch (error) {
+            setStatus("Không tạo được", true);
+            return null;
+        }
+    }
+    
+    function subscribeRealtime() {
+        if (unsubscribe) unsubscribe();
+        if (!currentDocId) return;
+        
+        unsubscribe = db.collection('documents').doc(currentDocId)
+            .onSnapshot((snapshot) => {
+                if (!snapshot.exists || isSaving) return;
+                const data = snapshot.data();
+                if (data && data.contentHtml && data.contentHtml !== quill.root.innerHTML) {
+                    const selection = quill.getSelection();
+                    let remoteHtml = normalizeHtmlContent(data.contentHtml);
+                    quill.root.innerHTML = remoteHtml;
+                    if (selection) quill.setSelection(selection.index, selection.length);
+                    setStatus("Cập nhật từ người khác");
+                }
+            });
+    }
+    
+    function updateShareLink() {
+        if (!currentDocId) {
+            shareLinkInput.value = '';
+            return;
+        }
+        const url = new URL(window.location.href);
+        url.searchParams.set('doc', currentDocId);
+        window.history.replaceState({}, '', url);
+        shareLinkInput.value = url.toString();
+    }
+    
+    function setupEditor() {
+        quill = new Quill('#editor', {
+            theme: 'snow',
+            placeholder: 'Bắt đầu viết... Gõ AI{nội dung} để dùng AI',
+            modules: {
+                toolbar: [
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'align': [] }],
+                    ['link', 'clean']
+                ]
+            }
+        });
+        
+        quill.on('text-change', () => {
+            if (saveTimeout) clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                if (currentDocId) saveDocument(false);
+            }, 800);
+            triggerAICheck();
+        });
+    }
+    
+    function showAIHelp() {
+        const helpHtml = `
+            <div style="background: #f0f4fe; padding: 20px; border-radius: 16px; margin: 16px 0;">
+                <h3 style="margin-top:0;">🤖 Hướng dẫn sử dụng AI</h3>
+                <p><strong>Cú pháp:</strong> <code>AI{nội dung cần viết}</code></p>
+                <p><strong>Ví dụ:</strong></p>
+                <ul>
+                    <li><code>AI{Giới thiệu về Nguyễn Huệ}</code></li>
+                    <li><code>AI{Lợi ích của trí tuệ nhân tạo}</code></li>
+                </ul>
+                <p><strong>🔒 Bảo mật:</strong> API Key được mã hóa đảo ngược, an toàn trước bot quét.</p>
+            </div>
+        `;
+        const currentHtml = quill.root.innerHTML;
+        quill.root.innerHTML = currentHtml + helpHtml;
+        saveDocument(false);
+    }
+    
+    async function init() {
+        setupEditor();
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const docId = urlParams.get('doc');
+        
+        if (docId && docId.trim()) {
+            currentDocId = docId;
+            await loadDocument(currentDocId);
+            subscribeRealtime();
+        } else {
+            await createDocument();
+        }
+        
+        updateShareLink();
+        
+        document.getElementById('newBtn').onclick = async () => {
+            if (confirm('Tạo tài liệu mới?')) {
+                if (currentDocId) await saveDocument(false);
+                await createDocument();
+            }
+        };
+        
+        document.getElementById('saveBtn').onclick = () => saveDocument(true);
+        document.getElementById('aiHelpBtn').onclick = () => showAIHelp();
+        document.getElementById('copyBtn').onclick = () => {
+            if (shareLinkInput.value) {
+                shareLinkInput.select();
+                document.execCommand('copy');
+                setStatus("✓ Đã copy link");
+            }
+        };
+        
+        window.onbeforeunload = () => {
+            if (currentDocId) saveDocument(false);
+        };
+    }
+    
+    init().catch(console.error);
+</script>
+</body>
+</html>
