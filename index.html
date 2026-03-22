@@ -510,9 +510,7 @@ Trả về HTML thuần túy.`;
         try {
             const newRef = db.collection('documents').doc();
             currentDocId = newRef.id;
-            quill.root.innerHTML = `<h2 style="text-align: center;">📄 Tài liệu mới</h2>
-<p>Bắt đầu soạn thảo hoặc gõ <strong>AI{chủ đề}</strong> để sử dụng AI.</p>
-<p><em>🔒 API Key đã được mã hóa bảo mật</em></p>`;
+            quill.root.innerHTML = ``;
             await newRef.set({
                 contentHtml: quill.root.innerHTML,
                 contentDelta: JSON.parse(JSON.stringify(quill.getContents())),
